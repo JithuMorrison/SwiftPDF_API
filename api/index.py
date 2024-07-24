@@ -42,7 +42,7 @@ def disp():
 def predict_trauma_route():
     data = request.get_json()
     print(data["text"])
-    loaded_pipeline = joblib.load("trauma/trained_model.joblib")
+    loaded_pipeline = joblib.load("trained_model.joblib")
     # Example usage
     new_text = data["text"]  # Replace with the text you want to classify
     predicted_label = loaded_pipeline.predict([new_text])
