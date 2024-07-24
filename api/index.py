@@ -20,8 +20,8 @@ def disp():
     data = request.get_json()
     print(data["text"])
     # Load the saved model and vectorizer
-    model = joblib.load(r'C:\Users\jithu\OneDrive - SSN-Institute\College\App making\Trauma App\trauma_model.pkl')
-    vectorizer = joblib.load(r'C:\Users\jithu\OneDrive - SSN-Institute\College\App making\Trauma App\vectorizer.pkl')
+    model = joblib.load('trauma/trauma_model.pkl')
+    vectorizer = joblib.load('trauma/vectorizer.pkl')
 
     # Function to make predictions on new data
     def predict_trauma(text):
@@ -42,7 +42,7 @@ def disp():
 def predict_trauma_route():
     data = request.get_json()
     print(data["text"])
-    loaded_pipeline = joblib.load(r"C:\Users\jithu\OneDrive - SSN-Institute\College\App making\Trauma App\trained_model.joblib")
+    loaded_pipeline = joblib.load("trauma/trained_model.joblib")
     # Example usage
     new_text = data["text"]  # Replace with the text you want to classify
     predicted_label = loaded_pipeline.predict([new_text])
