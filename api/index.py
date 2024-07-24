@@ -20,8 +20,8 @@ def disp():
     data = request.get_json()
     print(data["text"])
     # Load the saved model and vectorizer
-    model = joblib.load('trauma/trauma_model.pkl')
-    vectorizer = joblib.load('trauma/vectorizer.pkl')
+    model = joblib.load('trauma_model.pkl')
+    vectorizer = joblib.load('vectorizer.pkl')
 
     # Function to make predictions on new data
     def predict_trauma(text):
