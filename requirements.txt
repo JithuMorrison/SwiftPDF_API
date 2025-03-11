@@ -1,2 +1,10 @@
 Flask==3.0.3
-joblib
+Flask-Cors
+os
+time
+docx2pdf
+pandas
+fpdf
+nbformat
+shutil
+tempfile
