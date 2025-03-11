@@ -4,5 +4,4 @@ docx2pdf
 pandas
 fpdf
 nbformat
-shutil
 tempfile
