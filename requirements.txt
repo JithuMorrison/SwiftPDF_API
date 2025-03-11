@@ -1,6 +1,7 @@
 Flask==3.0.3
 Flask-Cors
-docx2pdf
+python-docx
+reportlab
 pandas
 fpdf
 nbformat
