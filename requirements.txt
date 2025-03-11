@@ -1,7 +1,5 @@
 Flask==3.0.3
 Flask-Cors
-os
-time
 docx2pdf
 pandas
 fpdf
