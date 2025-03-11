@@ -4,3 +4,4 @@ docx2pdf
 pandas
 fpdf
 nbformat
+openpyxl
