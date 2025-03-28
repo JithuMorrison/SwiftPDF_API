@@ -11,6 +11,9 @@ from docx.shared import Inches
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
+from pptx import Presentation
+from PIL import Image, ImageDraw
+import io
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -166,6 +169,64 @@ def ipynb_to_pdf():
     finally:
         safe_remove(input_path)
         safe_remove(output_path)
+
+@app.route('/convert/ppt-to-pdf', methods=['POST'])
+def ppt_to_pdf():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+
+    # Validate file extension
+    if not file.filename.lower().endswith(('.ppt', '.pptx')):
+        return jsonify({"error": "Invalid file type. Only PPT/PPTX files are allowed."}), 400
+
+    try:
+        # Read PowerPoint file directly from memory
+        prs = Presentation(io.BytesIO(file.read()))
+        
+        # Create PDF in memory
+        pdf_buffer = io.BytesIO()
+        c = canvas.Canvas(pdf_buffer, pagesize=letter)
+        
+        for i, slide in enumerate(prs.slides):
+            # Create a blank image for the slide
+            img = Image.new('RGB', (800, 600), 'white')
+            draw = ImageDraw.Draw(img)
+            
+            # Add slide number
+            draw.text((50, 50), f"Slide {i+1}", fill='black')
+            
+            # Add placeholder for each shape
+            y_offset = 100
+            for shape in slide.shapes:
+                if hasattr(shape, "text") and shape.text.strip():
+                    draw.text((50, y_offset), shape.text, fill='black')
+                    y_offset += 30
+            
+            # Save image to memory
+            img_buffer = io.BytesIO()
+            img.save(img_buffer, format='PNG')
+            img_buffer.seek(0)
+            
+            # Add image to PDF
+            c.drawImage(ImageReader(img_buffer), 50, 50, width=500, height=400, preserveAspectRatio=True)
+            c.showPage()
+        
+        c.save()
+        pdf_buffer.seek(0)
+        
+        return send_file(
+            pdf_buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name="converted.pdf"
+        )
+
+    except Exception as e:
+        return jsonify({"error": f"Conversion failed: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
