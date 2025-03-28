@@ -183,50 +183,46 @@ def ppt_to_pdf():
     if not file.filename.lower().endswith(('.ppt', '.pptx')):
         return jsonify({"error": "Invalid file type. Only PPT/PPTX files are allowed."}), 400
 
+    input_path = os.path.join(UPLOAD_FOLDER, file.filename)
+    output_path = os.path.join(UPLOAD_FOLDER, "converted.pdf")
+    file.save(input_path)
+
     try:
-        # Read PowerPoint file directly from memory
-        prs = Presentation(io.BytesIO(file.read()))
-        
-        # Create PDF in memory
-        pdf_buffer = io.BytesIO()
-        c = canvas.Canvas(pdf_buffer, pagesize=letter)
-        
+        # Load PowerPoint file from disk
+        with open(input_path, 'rb') as f:
+            prs = Presentation(f)
+
+        c = canvas.Canvas(output_path, pagesize=letter)
+
         for i, slide in enumerate(prs.slides):
-            # Create a blank image for the slide
             img = Image.new('RGB', (800, 600), 'white')
             draw = ImageDraw.Draw(img)
-            
-            # Add slide number
+
             draw.text((50, 50), f"Slide {i+1}", fill='black')
-            
-            # Add placeholder for each shape
+
             y_offset = 100
             for shape in slide.shapes:
                 if hasattr(shape, "text") and shape.text.strip():
                     draw.text((50, y_offset), shape.text, fill='black')
                     y_offset += 30
-            
-            # Save image to memory
+
             img_buffer = io.BytesIO()
             img.save(img_buffer, format='PNG')
             img_buffer.seek(0)
-            
-            # Add image to PDF
+
             c.drawImage(ImageReader(img_buffer), 50, 50, width=500, height=400, preserveAspectRatio=True)
             c.showPage()
-        
+
         c.save()
-        pdf_buffer.seek(0)
-        
-        return send_file(
-            pdf_buffer,
-            mimetype='application/pdf',
-            as_attachment=True,
-            download_name="converted.pdf"
-        )
+
+        return send_file(output_path, as_attachment=True, download_name="converted.pdf")
 
     except Exception as e:
         return jsonify({"error": f"Conversion failed: {str(e)}"}), 500
+
+    finally:
+        safe_remove(input_path)
+        safe_remove(output_path)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
