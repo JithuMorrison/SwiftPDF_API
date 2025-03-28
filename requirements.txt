@@ -6,3 +6,5 @@ pandas
 fpdf
 nbformat
 openpyxl
+python-pptx
+Pillow
