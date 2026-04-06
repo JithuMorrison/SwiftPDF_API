@@ -11,3 +11,9 @@ venv/
 ENV/ 
 env.bak/ 
 venv.bak/ 
+
+# PyInstaller build artifacts — do not commit
+build/
+dist/
+*.spec
+*.exe

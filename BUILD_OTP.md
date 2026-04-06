@@ -5,10 +5,13 @@
 ```
 api/
   office_to_pdf.py          ← the actual Flask API (Word/Excel/PPT → PDF)
-  office_to_pdf_launcher.py ← entry point used by PyInstaller
-OfficeToPDF.spec            ← PyInstaller build config (keep this)
+  office_to_pdf_launcher.py ← entry point for OfficeToPDF.exe
+  stop_server_launcher.py   ← entry point for StopServer.exe
+OfficeToPDF.spec            ← PyInstaller build config for the server exe
+StopServer.spec             ← PyInstaller build config for the stop exe
 dist/
-  OfficeToPDF.exe           ← the final executable
+  OfficeToPDF.exe           ← starts the server
+  StopServer.exe            ← stops the server
 ```
 
 ---
@@ -33,30 +36,63 @@ This separation keeps the API code clean and reusable while giving PyInstaller a
 ## Prerequisites
 
 - Python 3.10+
-- A virtual environment (recommended)
+- Microsoft Office installed (Word/Excel/PowerPoint) for best PDF quality
+- LibreOffice optional — used as fallback if MS Office COM fails
+- No MS Office or LibreOffice? The basic python fallback still works
 
 ```cmd
 python -m venv venv
-venv\Scripts\pip install flask flask-cors pywin32 pyinstaller
+venv\Scripts\pip install flask flask-cors pywin32 python-docx reportlab python-pptx pandas fpdf openpyxl Pillow pyinstaller
 ```
 
 ---
 
-## Build the exe
+## Build OfficeToPDF.exe (starts the server)
 
-### Option 1 — using the .spec file (recommended, reproducible)
+### Option 1 — using the .spec file (recommended)
 
 ```cmd
 venv\Scripts\pyinstaller OfficeToPDF.spec
 ```
 
-### Option 2 — from scratch (regenerates the .spec)
+### Option 2 — from scratch
 
 ```cmd
 venv\Scripts\pyinstaller --onefile --noconsole --name OfficeToPDF api\office_to_pdf_launcher.py --paths api
 ```
 
-The exe will be output to `dist\OfficeToPDF.exe`.
+Output: `dist\OfficeToPDF.exe`
+
+---
+
+## Build StopServer.exe (stops the server)
+
+### Option 1 — using the .spec file (recommended)
+
+```cmd
+venv\Scripts\pyinstaller StopServer.spec
+```
+
+### Option 2 — from scratch
+
+```cmd
+venv\Scripts\pyinstaller --onefile --noconsole --name StopServer api\stop_server_launcher.py
+```
+
+Output: `dist\StopServer.exe`
+
+---
+
+## Pre-built downloads (Windows x64)
+
+Don't want to build? Download the pre-built executables directly:
+
+| File                                  | Download                                                                                                         |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `OfficeToPDF.exe` — starts the server | [Download from Google Drive](https://drive.google.com/file/d/12EftoV1bFdw2OQdnRiwPMAb8Fptqg2bM/view?usp=sharing) |
+| `StopServer.exe` — stops the server   | [Download from Google Drive](https://drive.google.com/file/d/1vNnWQLZMf0PMOY1KfuRdzZQpKxShDVv7/view?usp=sharing) |
+
+Place both in the same folder and use them together.
 
 ---
 
@@ -66,8 +102,11 @@ The exe will be output to `dist\OfficeToPDF.exe`.
 | ------------------------------- | --------------------------------------------- |
 | `build\`                        | Yes — intermediate files only                 |
 | `dist\OfficeToPDF.exe`          | No — this is the output                       |
+| `dist\StopServer.exe`           | No — this is the output                       |
 | `OfficeToPDF.spec`              | No — needed to rebuild without retyping flags |
-| `api\office_to_pdf_launcher.py` | No — required by the spec to rebuild          |
+| `StopServer.spec`               | No — needed to rebuild without retyping flags |
+| `api\office_to_pdf_launcher.py` | No — required by OfficeToPDF.spec             |
+| `api\stop_server_launcher.py`   | No — required by StopServer.spec              |
 
 ---
 
@@ -77,4 +116,4 @@ The exe is self-contained (no Python needed), but conversion quality depends on 
 
 - Microsoft Office installed → uses Word/Excel/PowerPoint COM for best fidelity
 - LibreOffice installed → used as fallback if MS Office is not present
-- Neither installed → conversion will fail with an error
+- Neither installed → basic python fallback kicks in (simpler output, always works)
