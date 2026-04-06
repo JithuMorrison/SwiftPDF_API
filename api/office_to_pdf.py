@@ -110,16 +110,21 @@ def convert_with_win32com_excel(input_path, output_path):
 def convert_with_win32com_ppt(input_path, output_path):
     """Convert PowerPoint to PDF using Microsoft PowerPoint COM (Windows only)."""
     import win32com.client
-    ppt_app = win32com.client.Dispatch("PowerPoint.Application")
-    ppt_app.Visible = 1  # PowerPoint requires Visible=True to open files
+    import pythoncom
+    pythoncom.CoInitialize()  # Required when called from a Flask worker thread
     try:
-        presentation = ppt_app.Presentations.Open(
-            os.path.abspath(input_path), WithWindow=True
-        )
-        presentation.SaveAs(os.path.abspath(output_path), FileFormat=32)  # 32 = ppSaveAsPDF
-        presentation.Close()
+        ppt_app = win32com.client.Dispatch("PowerPoint.Application")
+        ppt_app.Visible = 1  # PowerPoint requires Visible=True to open files
+        try:
+            presentation = ppt_app.Presentations.Open(
+                os.path.abspath(input_path), WithWindow=True
+            )
+            presentation.SaveAs(os.path.abspath(output_path), FileFormat=32)  # 32 = ppSaveAsPDF
+            presentation.Close()
+        finally:
+            ppt_app.Quit()
     finally:
-        ppt_app.Quit()
+        pythoncom.CoUninitialize()
 
 
 def basic_word_to_pdf(input_path, output_path):
@@ -172,7 +177,8 @@ def basic_excel_to_pdf(input_path, output_path):
 
 def basic_ppt_to_pdf(input_path, output_path):
     """Fallback: convert PPT to PDF using python-pptx + reportlab."""
-    prs = Presentation(input_path)
+    with open(input_path, 'rb') as f:
+        prs = Presentation(f)
     c = canvas.Canvas(output_path, pagesize=letter)
     for i, slide in enumerate(prs.slides):
         img = Image.new('RGB', (800, 600), 'white')
