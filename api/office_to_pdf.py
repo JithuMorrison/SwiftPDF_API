@@ -6,17 +6,7 @@ import tempfile
 import subprocess
 import platform
 import threading
-import io
 
-# Basic fallback libs
-import pandas as pd
-from fpdf import FPDF
-from docx import Document
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
-from pptx import Presentation
-from PIL import Image, ImageDraw
 
 app = Flask(__name__)
 CORS(app)
@@ -127,82 +117,11 @@ def convert_with_win32com_ppt(input_path, output_path):
         pythoncom.CoUninitialize()
 
 
-def basic_word_to_pdf(input_path, output_path):
-    """Fallback: convert Word to PDF using python-docx + reportlab."""
-    doc = Document(input_path)
-    pdf_canvas = canvas.Canvas(output_path, pagesize=letter)
-    pdf_canvas.setFont("Helvetica", 12)
-    y_position = 750
-
-    for para in doc.paragraphs:
-        pdf_canvas.drawString(100, y_position, para.text)
-        y_position -= 20
-        if y_position < 50:
-            pdf_canvas.showPage()
-            pdf_canvas.setFont("Helvetica", 12)
-            y_position = 750
-
-    for rel in doc.part.rels:
-        if "image" in doc.part.rels[rel].target_ref:
-            img_data = doc.part.rels[rel].target_part.blob
-            img_path = os.path.join(UPLOAD_FOLDER, f"temp_image_{rel}.jpg")
-            with open(img_path, "wb") as f:
-                f.write(img_data)
-            img_reader = ImageReader(img_path)
-            img_width, img_height = img_reader.getSize()
-            new_width = 300
-            new_height = new_width / (img_width / img_height)
-            if y_position - new_height < 50:
-                pdf_canvas.showPage()
-                y_position = 750
-            pdf_canvas.drawImage(img_reader, 100, y_position - new_height, width=new_width, height=new_height)
-            y_position -= new_height + 20
-            safe_remove(img_path)
-
-    pdf_canvas.save()
-
-
-def basic_excel_to_pdf(input_path, output_path):
-    """Fallback: convert Excel to PDF using pandas + fpdf."""
-    df = pd.read_excel(input_path)
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=10)
-    for _, row in df.iterrows():
-        for col in df.columns:
-            pdf.cell(40, 10, str(row[col]), border=1)
-        pdf.ln()
-    pdf.output(output_path)
-
-
-def basic_ppt_to_pdf(input_path, output_path):
-    """Fallback: convert PPT to PDF using python-pptx + reportlab."""
-    with open(input_path, 'rb') as f:
-        prs = Presentation(f)
-    c = canvas.Canvas(output_path, pagesize=letter)
-    for i, slide in enumerate(prs.slides):
-        img = Image.new('RGB', (800, 600), 'white')
-        draw = ImageDraw.Draw(img)
-        draw.text((50, 50), f"Slide {i+1}", fill='black')
-        y_offset = 100
-        for shape in slide.shapes:
-            if hasattr(shape, "text") and shape.text.strip():
-                draw.text((50, y_offset), shape.text, fill='black')
-                y_offset += 30
-        img_buffer = io.BytesIO()
-        img.save(img_buffer, format='PNG')
-        img_buffer.seek(0)
-        c.drawImage(ImageReader(img_buffer), 50, 50, width=500, height=400, preserveAspectRatio=True)
-        c.showPage()
-    c.save()
-
-
 def office_convert(input_path, output_path, app_type):
     """
-    3-tier conversion:
+    2-tier conversion:
       1. win32com (Windows + MS Office) — best fidelity
       2. LibreOffice headless — good fidelity
-      3. Basic python libs (python-docx/pptx/pandas) — last resort
     """
     errors = []
 
@@ -228,18 +147,6 @@ def office_convert(input_path, output_path, app_type):
         return
     except Exception as e:
         errors.append(f"LibreOffice: {e}")
-
-    # Tier 3: basic python fallback
-    try:
-        if app_type == "word":
-            basic_word_to_pdf(input_path, output_path)
-        elif app_type == "excel":
-            basic_excel_to_pdf(input_path, output_path)
-        elif app_type == "ppt":
-            basic_ppt_to_pdf(input_path, output_path)
-        return
-    except Exception as e:
-        errors.append(f"basic fallback: {e}")
 
     raise RuntimeError("All conversion methods failed: " + " | ".join(errors))
 
